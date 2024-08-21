@@ -21,7 +21,7 @@ const server = net.createServer((socket) => {
     socket.on('end', () => {
         console.log('Data reception complete');
         console.log('Received data:');
-        console.log(receivedData); // Display the accumulated data
+        console.log(receivedData);
     });
 
     // Handle errors
