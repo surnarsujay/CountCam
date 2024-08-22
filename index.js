@@ -4,7 +4,7 @@ const sql = require('mssql');
 
 // Define the IP camera server address and port
 const SERVER_ADDRESS = "192.168.0.116";
-const SERVER_PORT = 3065;
+const SERVER_PORT = 3060;
 
 // Define the database configuration
 const sqlConfig = {
