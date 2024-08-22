@@ -1,18 +1,17 @@
-require('dotenv').config();
 const http = require('http');
 const sax = require('sax');
 const sql = require('mssql');
 
 // Define the IP camera server address and port
-const SERVER_ADDRESS = process.env.SERVER_ADDRESS;
-const SERVER_PORT = process.env.COUNT_SERVER_PORT;
+const SERVER_ADDRESS = "192.168.0.116";
+const SERVER_PORT = 3065;
 
-// MSSQL connection configuration
-const dbConfig = {
-    user: process.env.DB_USER,
-    password: process.env.DB_PASSWORD,
-    server: process.env.DB_SERVER,
-    database: process.env.DB_DATABASE,
+// Define the database configuration
+const sqlConfig = {
+    user: 'MplusCam',
+    password: 'pv973$8eO',
+    server: '146.88.24.73',
+    database: 'lissomMplusCam',
     options: {
         encrypt: true,
         trustServerCertificate: true, // Temporary setting for diagnosis
@@ -22,7 +21,12 @@ const dbConfig = {
     },
 };
 
-
+// Function to format the current system datetime for SQL Server
+function formatSystemDateTimeForSqlServer() {
+    const currentDate = new Date();
+    const formattedDateTime = currentDate.toISOString().replace('T', ' ').replace('Z', '');
+    return formattedDateTime;
+}
 
 // Define the tags to capture
 const tagsToCapture = ['mac', 'sn', 'enterCarCount', 'enterPersonCount', 'enterBikeCount'];
@@ -117,13 +121,14 @@ async function insertIntoDatabase(mac, sn, enterCarCount, enterPersonCount, ente
 
         // Define the query to insert data into the table
         const query = `
-        INSERT INTO MplusCam.CameraData (mac, sn, enterCarCount, enterPersonCount, enterBikeCount)
-        VALUES (@mac, @sn, @enterCarCount, @enterPersonCount, @enterBikeCount);
+        INSERT INTO MplusCam.CameraData (mac, currentTime, sn, enterCarCount, enterPersonCount, enterBikeCount)
+        VALUES (@mac, @currentTime, @sn, @enterCarCount, @enterPersonCount, @enterBikeCount);
         `;
 
         // Execute the query
         const result = await request
             .input('mac', sql.VarChar, mac)
+            .input('currentTime', sql.DateTime, formatSystemDateTimeForSqlServer())
             .input('sn', sql.VarChar, sn || null) // Provide null if sn is not available
             .input('enterCarCount', sql.Int, enterCarCount || null) // Provide null if enterCarCount is not available
             .input('enterPersonCount', sql.Int, enterPersonCount || null) // Provide null if enterPersonCount is not available
