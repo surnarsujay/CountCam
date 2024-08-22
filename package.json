@@ -1,11 +1,11 @@
 {
   "name": "demo",
   "version": "1.0.0",
-  "main": "index.js",
+  "main": "count.js",
   "scripts": {
     "test": "echo \"Error: no test specified\" && exit 1",
-    "start": "node index.js",
-    "dev": "nodemon index.js"
+    "start": "node count.js",
+    "dev": "nodemon count.js"
   },
   "dependencies": {
     "axios": "^1.6.7",
