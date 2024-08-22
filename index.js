@@ -29,7 +29,8 @@ function formatSystemDateTimeForSqlServer() {
 }
 
 // Define the tags to capture
-const tagsToCapture = ['mac', 'sn', 'enterCarCount', 'enterPersonCount', 'enterBikeCount'];
+const tagsToCapture = ['mac', 'sn', 'deviceName', 'enterCarCount', 'enterPersonCount', 'enterBikeCount',
+    'leaveCarCount', 'leavePersonCount', 'leaveBikeCount', 'existCarCount', 'existPersonCount', 'existBikeCount'];
 
 // Create HTTP server
 const server = http.createServer((req, res) => {
@@ -43,7 +44,8 @@ const server = http.createServer((req, res) => {
         let value = ''; // Current tag value
 
         // Variables to store extracted values
-        let mac, sn, enterCarCount, enterPersonCount, enterBikeCount;
+        let mac, sn, deviceName, enterCarCount, enterPersonCount, enterBikeCount;
+        let leaveCarCount, leavePersonCount, leaveBikeCount, existCarCount, existPersonCount, existBikeCount;
 
         // Register event handlers for parsing
         parser.on('opentag', node => {
@@ -55,12 +57,12 @@ const server = http.createServer((req, res) => {
             }
         });
 
-        // Inside the parser.on('closetag', ...) event handler
         parser.on('closetag', tagName => {
             if (tagName === 'config') {
                 insideConfigTag = false;
                 // Insert data into MSSQL database
-                insertIntoDatabase(mac, sn, enterCarCount, enterPersonCount, enterBikeCount, sqlConfig);
+                insertIntoDatabase(mac, sn, deviceName, enterCarCount, enterPersonCount, enterBikeCount,
+                    leaveCarCount, leavePersonCount, leaveBikeCount, existCarCount, existPersonCount, existBikeCount, sqlConfig);
             } else if (insideConfigTag && tagsToCapture.includes(tagName)) {
                 console.log(`${tagName}: ${value}`);
                 switch (tagName) {
@@ -70,6 +72,9 @@ const server = http.createServer((req, res) => {
                     case 'sn':
                         sn = value;
                         break;
+                    case 'deviceName':
+                        deviceName = value;
+                        break;
                     case 'enterCarCount':
                         enterCarCount = parseInt(value);
                         break;
@@ -78,6 +83,24 @@ const server = http.createServer((req, res) => {
                         break;
                     case 'enterBikeCount':
                         enterBikeCount = parseInt(value);
+                        break;
+                    case 'leaveCarCount':
+                        leaveCarCount = parseInt(value);
+                        break;
+                    case 'leavePersonCount':
+                        leavePersonCount = parseInt(value);
+                        break;
+                    case 'leaveBikeCount':
+                        leaveBikeCount = parseInt(value);
+                        break;
+                    case 'existCarCount':
+                        existCarCount = parseInt(value);
+                        break;
+                    case 'existPersonCount':
+                        existPersonCount = parseInt(value);
+                        break;
+                    case 'existBikeCount':
+                        existBikeCount = parseInt(value);
                         break;
                 }
             }
@@ -110,7 +133,8 @@ const server = http.createServer((req, res) => {
 });
 
 // Function to insert data into MSSQL database
-async function insertIntoDatabase(mac, sn, enterCarCount, enterPersonCount, enterBikeCount, config) {
+async function insertIntoDatabase(mac, sn, deviceName, enterCarCount, enterPersonCount, enterBikeCount,
+    leaveCarCount, leavePersonCount, leaveBikeCount, existCarCount, existPersonCount, existBikeCount, config) {
     let pool;
     try {
         // Connect to the database
@@ -121,8 +145,10 @@ async function insertIntoDatabase(mac, sn, enterCarCount, enterPersonCount, ente
 
         // Define the query to insert data into the table
         const query = `
-        INSERT INTO MplusCam.CameraData (mac, currentTime, sn, enterCarCount, enterPersonCount, enterBikeCount)
-        VALUES (@mac, @currentTime, @sn, @enterCarCount, @enterPersonCount, @enterBikeCount);
+        INSERT INTO MplusCam.CameraData (mac, currentTime, sn, deviceName, enterCarCount, enterPersonCount, enterBikeCount,
+            leaveCarCount, leavePersonCount, leaveBikeCount, existCarCount, existPersonCount, existBikeCount)
+        VALUES (@mac, @currentTime, @sn, @deviceName, @enterCarCount, @enterPersonCount, @enterBikeCount,
+            @leaveCarCount, @leavePersonCount, @leaveBikeCount, @existCarCount, @existPersonCount, @existBikeCount);
         `;
 
         // Execute the query
@@ -130,9 +156,16 @@ async function insertIntoDatabase(mac, sn, enterCarCount, enterPersonCount, ente
             .input('mac', sql.VarChar, mac)
             .input('currentTime', sql.DateTime, formatSystemDateTimeForSqlServer())
             .input('sn', sql.VarChar, sn || null) // Provide null if sn is not available
+            .input('deviceName', sql.VarChar, deviceName || null) // Provide null if deviceName is not available
             .input('enterCarCount', sql.Int, enterCarCount || null) // Provide null if enterCarCount is not available
             .input('enterPersonCount', sql.Int, enterPersonCount || null) // Provide null if enterPersonCount is not available
             .input('enterBikeCount', sql.Int, enterBikeCount || null) // Provide null if enterBikeCount is not available
+            .input('leaveCarCount', sql.Int, leaveCarCount || null) // Provide null if leaveCarCount is not available
+            .input('leavePersonCount', sql.Int, leavePersonCount || null) // Provide null if leavePersonCount is not available
+            .input('leaveBikeCount', sql.Int, leaveBikeCount || null) // Provide null if leaveBikeCount is not available
+            .input('existCarCount', sql.Int, existCarCount || null) // Provide null if existCarCount is not available
+            .input('existPersonCount', sql.Int, existPersonCount || null) // Provide null if existPersonCount is not available
+            .input('existBikeCount', sql.Int, existBikeCount || null) // Provide null if existBikeCount is not available
             .query(query);
 
         console.log('Data inserted successfully');
