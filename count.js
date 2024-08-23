@@ -8,10 +8,10 @@ const SERVER_PORT = 3060;
 
 // Define the database configuration
 const sqlConfig = {
-    user: 'MplusCam',
-    password: 'pv973$8eO',
+    user: 'lissom_pms',
+    password: 'f%80rZh26',
     server: '146.88.24.73',
-    database: 'lissomMplusCam',
+    database: 'lissom_pms',
     options: {
         encrypt: true,
         trustServerCertificate: true, // Temporary setting for diagnosis
@@ -145,7 +145,7 @@ async function insertIntoDatabase(mac, sn, deviceName, enterCarCount, enterPerso
 
         // Define the query to insert data into the table
         const query = `
-        INSERT INTO MplusCam.CameraData (mac, currentTime, sn, deviceName, enterCarCount, enterPersonCount, enterBikeCount,
+        INSERT INTO dbo.CameraData (mac, currentTime, sn, deviceName, enterCarCount, enterPersonCount, enterBikeCount,
             leaveCarCount, leavePersonCount, leaveBikeCount, existCarCount, existPersonCount, existBikeCount)
         VALUES (@mac, @currentTime, @sn, @deviceName, @enterCarCount, @enterPersonCount, @enterBikeCount,
             @leaveCarCount, @leavePersonCount, @leaveBikeCount, @existCarCount, @existPersonCount, @existBikeCount);
