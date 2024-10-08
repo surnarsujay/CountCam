@@ -116,17 +116,10 @@ const server = http.createServer((req, res) => {
 
         req.pipe(parser);
 
-        parser.on('error', err => {
-            console.error('XML Parsing Error:', err);
-        });
-
         req.on('end', () => {
-            // Log the current system datetime in SQL Server format
-            console.log("System DateTime (SQL Server format):", formatSystemDateTimeForSqlServer());
             console.log("Finished processing data");
         });
     } else {
-        // Handle non-POST requests
         res.writeHead(405, {'Content-Type': 'text/plain'});
         res.end('Method Not Allowed\n');
     }
@@ -171,6 +164,7 @@ async function insertIntoDatabase(mac, sn, deviceName, enterCarCount, enterPerso
                 @leaveCarCount, @leavePersonCount, @leaveBikeCount, @existCarCount, @existPersonCount, @existBikeCount);
             `;
 
+            // Reset the request for the insert
             await request
                 .input('currentTime', sql.DateTime, formatSystemDateTimeForSqlServer())
                 .input('enterPersonCount', sql.Int, enterPersonCount || null)
@@ -201,9 +195,14 @@ async function insertIntoDatabase(mac, sn, deviceName, enterCarCount, enterPerso
                 @leavePersonCount, @leaveBikeCount, @existCarCount, @existPersonCount, @existBikeCount);
         `;
 
+        // Reset the request for the merge
         await request
+            .input('enterCarCount', sql.Int, enterCarCount || null)
             .input('enterPersonCount', sql.Int, enterPersonCount || null)
+            .input('enterBikeCount', sql.Int, enterBikeCount || null)
+            .input('leaveCarCount', sql.Int, leaveCarCount || null)
             .input('leavePersonCount', sql.Int, leavePersonCount || null)
+            .input('leaveBikeCount', sql.Int, leaveBikeCount || null)
             .input('existCarCount', sql.Int, existCarCount || null)
             .input('existPersonCount', sql.Int, existPersonCount || null)
             .input('existBikeCount', sql.Int, existBikeCount || null)
