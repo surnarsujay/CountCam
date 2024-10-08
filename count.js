@@ -15,7 +15,7 @@ const sqlConfig = {
     database: process.env.DB_DATABASE,
     options: {
         encrypt: true,
-        trustServerCertificate: true, // Temporary setting for diagnosis
+        trustServerCertificate: true,
         cryptoCredentialsDetails: {
             minVersion: 'TLSv1.2',
         }
@@ -141,19 +141,37 @@ async function insertIntoDatabase(mac, sn, deviceName, enterCarCount, enterPerso
         // Connect to the database
         pool = await sql.connect(config);
 
-        // Check if an entry with the same 'sn' already exists in CameraData
+        // Check if an entry with the same data (all fields) already exists in CameraData
         const request = pool.request();
         const checkQuery = `
-        SELECT TOP 1 sn FROM dbo.CameraData WHERE sn = @sn ORDER BY currentTime DESC;
+        SELECT TOP 1 * FROM dbo.CameraData
+        WHERE sn = @sn AND mac = @mac AND deviceName = @deviceName
+        AND enterCarCount = @enterCarCount AND enterPersonCount = @enterPersonCount
+        AND enterBikeCount = @enterBikeCount AND leaveCarCount = @leaveCarCount
+        AND leavePersonCount = @leavePersonCount AND leaveBikeCount = @leaveBikeCount
+        AND existCarCount = @existCarCount AND existPersonCount = @existPersonCount
+        AND existBikeCount = @existBikeCount
+        ORDER BY currentTime DESC;
         `;
 
         const result = await request
+            .input('mac', sql.VarChar, mac)
             .input('sn', sql.VarChar, sn)
+            .input('deviceName', sql.VarChar, deviceName || null)
+            .input('enterCarCount', sql.Int, enterCarCount || null)
+            .input('enterPersonCount', sql.Int, enterPersonCount || null)
+            .input('enterBikeCount', sql.Int, enterBikeCount || null)
+            .input('leaveCarCount', sql.Int, leaveCarCount || null)
+            .input('leavePersonCount', sql.Int, leavePersonCount || null)
+            .input('leaveBikeCount', sql.Int, leaveBikeCount || null)
+            .input('existCarCount', sql.Int, existCarCount || null)
+            .input('existPersonCount', sql.Int, existPersonCount || null)
+            .input('existBikeCount', sql.Int, existBikeCount || null)
             .query(checkQuery);
 
         if (result.recordset.length > 0) {
             // Duplicate entry found, skip insertion
-            console.log(`Entry with sn: ${sn} already exists in CameraData. Skipping insertion.`);
+            console.log(`Entry with matching data already exists in CameraData. Skipping insertion.`);
         } else {
             // Insert into CameraData
             const insertQuery = `
@@ -164,19 +182,7 @@ async function insertIntoDatabase(mac, sn, deviceName, enterCarCount, enterPerso
             `;
 
             await request
-                .input('mac', sql.VarChar, mac)
                 .input('currentTime', sql.DateTime, formatSystemDateTimeForSqlServer())
-                .input('sn', sql.VarChar, sn || null)
-                .input('deviceName', sql.VarChar, deviceName || null)
-                .input('enterCarCount', sql.Int, enterCarCount || null)
-                .input('enterPersonCount', sql.Int, enterPersonCount || null)
-                .input('enterBikeCount', sql.Int, enterBikeCount || null)
-                .input('leaveCarCount', sql.Int, leaveCarCount || null)
-                .input('leavePersonCount', sql.Int, leavePersonCount || null)
-                .input('leaveBikeCount', sql.Int, leaveBikeCount || null)
-                .input('existCarCount', sql.Int, existCarCount || null)
-                .input('existPersonCount', sql.Int, existPersonCount || null)
-                .input('existBikeCount', sql.Int, existBikeCount || null)
                 .query(insertQuery);
 
             console.log('Data inserted successfully into CameraData.');
@@ -196,23 +202,11 @@ async function insertIntoDatabase(mac, sn, deviceName, enterCarCount, enterPerso
         WHEN NOT MATCHED THEN
             INSERT (sn, mac, deviceName, enterCarCount, enterPersonCount, enterBikeCount, leaveCarCount,
                 leavePersonCount, leaveBikeCount, existCarCount, existPersonCount, existBikeCount)
-            VALUES (@sn, @mac, @deviceName, @enterCarCount, @enterPersonCount, @enterBikeCount,
-                @leaveCarCount, @leavePersonCount, @leaveBikeCount, @existCarCount, @existPersonCount, @existBikeCount);
+            VALUES (@sn, @mac, @deviceName, @enterCarCount, @enterPersonCount, @enterBikeCount, @leaveCarCount,
+                @leavePersonCount, @leaveBikeCount, @existCarCount, @existPersonCount, @existBikeCount);
         `;
 
         await request
-            .input('mac', sql.VarChar, mac)
-            .input('sn', sql.VarChar, sn)
-            .input('deviceName', sql.VarChar, deviceName || null)
-            .input('enterCarCount', sql.Int, enterCarCount || null)
-            .input('enterPersonCount', sql.Int, enterPersonCount || null)
-            .input('enterBikeCount', sql.Int, enterBikeCount || null)
-            .input('leaveCarCount', sql.Int, leaveCarCount || null)
-            .input('leavePersonCount', sql.Int, leavePersonCount || null)
-            .input('leaveBikeCount', sql.Int, leaveBikeCount || null)
-            .input('existCarCount', sql.Int, existCarCount || null)
-            .input('existPersonCount', sql.Int, existPersonCount || null)
-            .input('existBikeCount', sql.Int, existBikeCount || null)
             .query(updateOrInsertQuery);
 
         console.log('Data inserted/updated successfully into CountCameraData.');
