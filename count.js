@@ -134,7 +134,7 @@ async function insertIntoDatabase(mac, sn, deviceName, enterCarCount, enterPerso
         pool = await sql.connect(config);
 
         // Check if an entry with the same data (excluding certain fields) already exists in CameraData
-        const request = pool.request();
+        const checkRequest = pool.request();  // Create a new request for checking existing data
         const checkQuery = `
         SELECT TOP 1 * FROM dbo.CameraData
         WHERE sn = @sn AND mac = @mac AND deviceName = @deviceName
@@ -143,7 +143,7 @@ async function insertIntoDatabase(mac, sn, deviceName, enterCarCount, enterPerso
         ORDER BY currentTime DESC;
         `;
 
-        const result = await request
+        const result = await checkRequest
             .input('mac', sql.VarChar, mac)
             .input('sn', sql.VarChar, sn)
             .input('deviceName', sql.VarChar, deviceName || null)
@@ -157,6 +157,7 @@ async function insertIntoDatabase(mac, sn, deviceName, enterCarCount, enterPerso
             console.log(`Entry with matching data already exists in CameraData. Skipping insertion.`);
         } else {
             // Insert into CameraData
+            const insertRequest = pool.request();  // Create a new request for inserting data
             const insertQuery = `
             INSERT INTO dbo.CameraData (mac, currentTime, sn, deviceName, enterCarCount, enterPersonCount, enterBikeCount,
                 leaveCarCount, leavePersonCount, leaveBikeCount, existCarCount, existPersonCount, existBikeCount)
@@ -164,11 +165,17 @@ async function insertIntoDatabase(mac, sn, deviceName, enterCarCount, enterPerso
                 @leaveCarCount, @leavePersonCount, @leaveBikeCount, @existCarCount, @existPersonCount, @existBikeCount);
             `;
 
-            // Reset the request for the insert
-            await request
+            await insertRequest
                 .input('currentTime', sql.DateTime, formatSystemDateTimeForSqlServer())
+                .input('mac', sql.VarChar, mac)
+                .input('sn', sql.VarChar, sn)
+                .input('deviceName', sql.VarChar, deviceName || null)
+                .input('enterCarCount', sql.Int, enterCarCount || null)
                 .input('enterPersonCount', sql.Int, enterPersonCount || null)
+                .input('enterBikeCount', sql.Int, enterBikeCount || null)
+                .input('leaveCarCount', sql.Int, leaveCarCount || null)
                 .input('leavePersonCount', sql.Int, leavePersonCount || null)
+                .input('leaveBikeCount', sql.Int, leaveBikeCount || null)
                 .input('existCarCount', sql.Int, existCarCount || null)
                 .input('existPersonCount', sql.Int, existPersonCount || null)
                 .input('existBikeCount', sql.Int, existBikeCount || null)
@@ -178,6 +185,7 @@ async function insertIntoDatabase(mac, sn, deviceName, enterCarCount, enterPerso
         }
 
         // Insert or update into CountCameraData
+        const updateOrInsertRequest = pool.request();  // Create a new request for the merge operation
         const updateOrInsertQuery = `
         MERGE dbo.CountCameraData AS target
         USING (SELECT @sn AS sn) AS source
@@ -195,8 +203,10 @@ async function insertIntoDatabase(mac, sn, deviceName, enterCarCount, enterPerso
                 @leavePersonCount, @leaveBikeCount, @existCarCount, @existPersonCount, @existBikeCount);
         `;
 
-        // Reset the request for the merge
-        await request
+        await updateOrInsertRequest
+            .input('mac', sql.VarChar, mac)
+            .input('sn', sql.VarChar, sn)
+            .input('deviceName', sql.VarChar, deviceName || null)
             .input('enterCarCount', sql.Int, enterCarCount || null)
             .input('enterPersonCount', sql.Int, enterPersonCount || null)
             .input('enterBikeCount', sql.Int, enterBikeCount || null)
