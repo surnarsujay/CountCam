@@ -35,7 +35,6 @@ const tagsToCapture = ['mac', 'sn', 'deviceName', 'enterCarCount', 'enterPersonC
 
 // Create HTTP server
 const server = http.createServer((req, res) => {
-    // Handle POST requests
     if (req.method === 'POST') {
         let parser = sax.createStream(true, { trim: true });
 
@@ -162,7 +161,6 @@ async function insertIntoDatabase(mac, sn, deviceName, enterCarCount, enterPerso
             .query(checkQuery);
 
         if (result.recordset.length > 0) {
-            // Duplicate entry found, skip insertion
             console.log(`Entry with matching data already exists in CameraData. Skipping insertion.`);
         } else {
             // Insert into CameraData
@@ -175,6 +173,11 @@ async function insertIntoDatabase(mac, sn, deviceName, enterCarCount, enterPerso
 
             await request
                 .input('currentTime', sql.DateTime, formatSystemDateTimeForSqlServer())
+                .input('enterPersonCount', sql.Int, enterPersonCount || null)
+                .input('leavePersonCount', sql.Int, leavePersonCount || null)
+                .input('existCarCount', sql.Int, existCarCount || null)
+                .input('existPersonCount', sql.Int, existPersonCount || null)
+                .input('existBikeCount', sql.Int, existBikeCount || null)
                 .query(insertQuery);
 
             console.log('Data inserted successfully into CameraData.');
@@ -199,6 +202,11 @@ async function insertIntoDatabase(mac, sn, deviceName, enterCarCount, enterPerso
         `;
 
         await request
+            .input('enterPersonCount', sql.Int, enterPersonCount || null)
+            .input('leavePersonCount', sql.Int, leavePersonCount || null)
+            .input('existCarCount', sql.Int, existCarCount || null)
+            .input('existPersonCount', sql.Int, existPersonCount || null)
+            .input('existBikeCount', sql.Int, existBikeCount || null)
             .query(updateOrInsertQuery);
 
         console.log('Data inserted/updated successfully into CountCameraData.');
@@ -206,13 +214,12 @@ async function insertIntoDatabase(mac, sn, deviceName, enterCarCount, enterPerso
     } catch (err) {
         console.error('Database error:', err);
     } finally {
-        if (pool) {
-            pool.close();
-        }
+        // Close the database connection
+        if (pool) await pool.close();
     }
 }
 
 // Start the server
 server.listen(SERVER_PORT, SERVER_ADDRESS, () => {
-    console.log(`Server is running on http://${SERVER_ADDRESS}:${SERVER_PORT}`);
+    console.log(`Server running at http://${SERVER_ADDRESS}:${SERVER_PORT}/`);
 });
