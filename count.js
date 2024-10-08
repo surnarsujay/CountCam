@@ -133,7 +133,7 @@ const server = http.createServer((req, res) => {
     }
 });
 
-// Function to insert data into MSSQL database with duplicate check and update logic for CountCameraData table
+// Function to insert data into MSSQL database with duplicate check excluding specific tags
 async function insertIntoDatabase(mac, sn, deviceName, enterCarCount, enterPersonCount, enterBikeCount,
     leaveCarCount, leavePersonCount, leaveBikeCount, existCarCount, existPersonCount, existBikeCount, config) {
     let pool;
@@ -141,16 +141,13 @@ async function insertIntoDatabase(mac, sn, deviceName, enterCarCount, enterPerso
         // Connect to the database
         pool = await sql.connect(config);
 
-        // Check if an entry with the same data (all fields) already exists in CameraData
+        // Check if an entry with the same data (excluding certain fields) already exists in CameraData
         const request = pool.request();
         const checkQuery = `
         SELECT TOP 1 * FROM dbo.CameraData
         WHERE sn = @sn AND mac = @mac AND deviceName = @deviceName
-        AND enterCarCount = @enterCarCount AND enterPersonCount = @enterPersonCount
-        AND enterBikeCount = @enterBikeCount AND leaveCarCount = @leaveCarCount
-        AND leavePersonCount = @leavePersonCount AND leaveBikeCount = @leaveBikeCount
-        AND existCarCount = @existCarCount AND existPersonCount = @existPersonCount
-        AND existBikeCount = @existBikeCount
+        AND enterCarCount = @enterCarCount AND enterBikeCount = @enterBikeCount
+        AND leaveCarCount = @leaveCarCount AND leaveBikeCount = @leaveBikeCount
         ORDER BY currentTime DESC;
         `;
 
@@ -159,14 +156,9 @@ async function insertIntoDatabase(mac, sn, deviceName, enterCarCount, enterPerso
             .input('sn', sql.VarChar, sn)
             .input('deviceName', sql.VarChar, deviceName || null)
             .input('enterCarCount', sql.Int, enterCarCount || null)
-            .input('enterPersonCount', sql.Int, enterPersonCount || null)
             .input('enterBikeCount', sql.Int, enterBikeCount || null)
             .input('leaveCarCount', sql.Int, leaveCarCount || null)
-            .input('leavePersonCount', sql.Int, leavePersonCount || null)
             .input('leaveBikeCount', sql.Int, leaveBikeCount || null)
-            .input('existCarCount', sql.Int, existCarCount || null)
-            .input('existPersonCount', sql.Int, existPersonCount || null)
-            .input('existBikeCount', sql.Int, existBikeCount || null)
             .query(checkQuery);
 
         if (result.recordset.length > 0) {
